@@ -1,0 +1,41 @@
+﻿@model List<KYC_Portal_Admin.Models.CompanyInfo>
+@{
+    ViewBag.Title = "Index";
+}
+
+
+<br />
+<h2>List of Companies</h2>
+<a class='btn btn-primary btn-sm' href="/Companies/Create">New Company </a>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Company_Name</th>
+            <th>address</th>
+            <th>logo_file</th>
+            <th>signature_file</th>
+            <th>updated_at</th>
+
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.id</td>
+                <td>@item.companyname</td>
+                <td>@item.compaddress</td>
+                <td>@item.logofile</td>
+                <td>@item.signaturefile</td>
+                <td>@item.updatedat</td>
+                <td>
+                    <a class="btn btn-primary btn-sm" href="/Companies/Edit?id=@item.id">Edit</a>
+                    <a class="btn btn-danger btn-sm" href="/Companies/Delete?id=@item.id">Delete</a>
+                </td>
+
+            </tr>
+        }
+    </tbody>
+</table>

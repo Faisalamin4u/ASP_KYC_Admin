@@ -17,45 +17,51 @@
 }
 
 
-<form method="POST">
+<form method="post" id="UserForm">
     <input type="hidden" name="id" value="@Model.docInfo.id" />
+
     <div class="row mb-3">
         <label class="col-sm-3 col-form-label">FirstName</label>
         <div class="col-sm-6">
-            <input type="text" class="form-control" name="firstname" value="@Model.docInfo.firstname" />
+            <input type="text" class="form-control" id="firstNameInput" name="firstname" value="@Model.docInfo.firstname" minLength="4" required />
         </div>
     </div>
     <div class="row mb-3">
         <label class="col-sm-3 col-form-label">LastName</label>
         <div class="col-sm-6">
-            <input type="text" class="form-control" name="lastname" value="@Model.docInfo.lastname" />
+            <input type="text" class="form-control" name="lastname" value="@Model.docInfo.lastname" minLength="4" required />
         </div>
     </div>
     <div class="row mb-3">
-        <label class="col-sm-3 col-form-label">ContactNo</label>
+        <label class="col-sm-3 col-form-label">Phone</label>
         <div class="col-sm-6">
-            <input type="text" class="form-control" name="contactno" value="@Model.docInfo.contactno" />
+            <input type="text" class="form-control" id="phoneNumberInput" name="phone" minLength="4" maxLength="10" value="@Model.docInfo.contactno" required />
+        </div>
+    </div>
+
+
+    <div class="row mb-3">
+        <label class="col-sm-3 col-form-label">Address</label>
+        <div class="col-sm-6">
+            <input type="text" class="form-control" name="address" value="@Model.docInfo.address" required />
         </div>
     </div>
     <div class="row mb-3">
         <label class="col-sm-3 col-form-label">Email</label>
         <div class="col-sm-6">
-            <input type="text" class="form-control" name="emailid" value="@Model.docInfo.emailid" />
+            <input type="email" class="form-control" name="email" value="@Model.docInfo.emailid" required />
         </div>
     </div>
     <div class="row mb-3">
         <label class="col-sm-3 col-form-label">Password</label>
-        <div class="col-sm-6">
-            <input type="text" class="form-control" name="userpwd" value="@Model.docInfo.userpwd" />
+        <div class="input-group" style="width:50%;">
+            <input type="password" id="passowrdInput" class="form-control" name="userpwd" value="@Model.docInfo.userpwd" required />
+            <div class="input-group-append">
+                <button class="btn btn-outline-secondary" id="eyeBtn" type="button"><i id="faEyeIcon" class="fas fa-eye fa-eye-slash"></i></button>
+                <button class="btn btn-outline-secondary" id="genPasswordBtn" type="button"><i class="fas fa-sync"></i></button>
+            </div>
         </div>
     </div>
-    <div class="row mb-3">
-        <label class="col-sm-3 col-form-label">Address</label>
-        <div class="col-sm-6">
-            <input type="text" class="form-control" name="address" value="@Model.docInfo.address" />
-        </div>
-    </div>
-
     @if (Model.successMessage.Length > 0)
     {
         <div class="row mb-3">
@@ -75,7 +81,7 @@
             <button type="submit" class="btn btn-primary">Submit</button>
         </div>
         <div class="col-sm-3 d-grid">
-            <a class="btn btn-outline-primary" href="/" role="button">Cancel</a>
+            <a class="btn btn-outline-primary" href="/Users/Index" role="button">Cancel</a>
 
         </div>
     </div>
@@ -83,3 +89,59 @@
 
 </form>
 
+
+<script>
+    $(document).ready(function () {
+        $('#eyeBtn').on('click', function () {
+            var eyeIcon = $('#faEyeIcon');
+            eyeIcon.toggleClass("fa-eye-slash");
+            var input = $("#passowrdInput");
+            if (input.attr("type") === "password") {
+                input.attr("type", "text");
+            } else {
+                input.attr("type", "password");
+            }
+        });
+        $('#genPasswordBtn').on('click', function () {
+            generatePassword();
+        });
+        $('#firstNameInput').on('input', function () {
+            validateForm();
+        });
+
+        function validateForm() {
+            var username = $('#firstNameInput').val();
+            if (username.trim().length === 0) {
+                $('#usernameError').show();
+                $('#generatePasswordBtn').prop('disabled', true);
+            } else {
+                $('#usernameError').hide();
+                $('#generatePasswordBtn').prop('disabled', false);
+            }
+        }
+
+        function generatePassword() {
+            var username = $('#firstNameInput').val();
+            var phoneNumber = $('#phoneNumberInput').val();
+            debugger
+            console.log($("#UserForm")[0].checkValidity())
+            if (username.length < 4 || phoneNumber.length < 4)
+                if ($("#UserForm")[0].checkValidity() == false) {
+                    $("#UserForm")[0].reportValidity();
+                    return;
+                }
+
+            // Extract last four digits from the username
+            var usernameLastFourDigits = username.slice(0, 4);
+
+            // Extract last four digits from the phone number
+            var phoneNumberLastFourDigits = phoneNumber.slice(-4);
+
+            // Generate the password by concatenating the last four digits
+            var generatedPassword = usernameLastFourDigits + phoneNumberLastFourDigits;
+
+            // Display the generated password
+            $('#passowrdInput').val(generatedPassword);
+        }
+    });
+</script>

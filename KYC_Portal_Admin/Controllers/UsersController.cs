@@ -85,8 +85,8 @@ namespace KYC_Portal_Admin.Controllers
             DocInfo.id = Convert.ToInt32(Request.Form["id"]);
             DocInfo.firstname = Request.Form["firstname"];
             DocInfo.lastname = Request.Form["lastname"];
-            DocInfo.emailid = Request.Form["emailid"];
-            DocInfo.contactno = Request.Form["contactno"];
+            DocInfo.emailid = Request.Form["email"];
+            DocInfo.contactno = Request.Form["phone"];
             DocInfo.address = Request.Form["address"];
 
             DocInfo.username = Request.Form["firstname"];

@@ -25,12 +25,16 @@ namespace KYC_Portal_Admin.Controllers
         public UserInfoVM userInfoVM = new UserInfoVM();
         public ActionResult Create()
         {
+            SetCompanyList();
+
             return View(userInfoVM);
         }
         [HttpPost]
         public ActionResult Create(UserInfo userInfo)
         {
             UserCreate(userInfo);
+            SetCompanyList();
+
             userInfoVM.docInfo = userInfo;
             userInfoVM.successMessage = successMessage;
             userInfoVM.errorMessage = errorMessage;
@@ -41,6 +45,8 @@ namespace KYC_Portal_Admin.Controllers
         {
             editUserInfo.id = id;
             SetUser();
+            SetCompanyList();
+
             userInfoVM.docInfo = editUserInfo;
             return View(userInfoVM);
         }
@@ -49,6 +55,8 @@ namespace KYC_Portal_Admin.Controllers
         {
             userInfo.id = editUserInfo.id;
             EditUser(userInfo);
+            SetCompanyList();
+
             userInfoVM.docInfo = userInfo;
             userInfoVM.successMessage = successMessage;
             userInfoVM.errorMessage = errorMessage;
@@ -88,7 +96,10 @@ namespace KYC_Portal_Admin.Controllers
             DocInfo.emailid = Request.Form["email"];
             DocInfo.contactno = Request.Form["phone"];
             DocInfo.address = Request.Form["address"];
-
+            int.TryParse(Request.Form["companyid"], out int companyID);
+            int.TryParse(Request.Form["qualid"], out int qualid);
+            DocInfo.companyid = companyID;
+            DocInfo.qualid = qualid;
             DocInfo.username = Request.Form["firstname"];
             DocInfo.userpwd = Request.Form["userpwd"];
 
@@ -108,7 +119,7 @@ namespace KYC_Portal_Admin.Controllers
                 {
                     connection.Open();
                     String sql = "UPDATE users " +
-                      "SET firstname=@firstname, lastname=@lastname, emailid=@emailid, contactno=@contactno, username=@username, userpwd=@userpwd, address=@address" +
+                      "SET firstname=@firstname, lastname=@lastname, emailid=@emailid, contactno=@contactno, username=@username,companyid=@companyID, qualid=@qualid,userpwd=@userpwd, address=@address" +
                     " WHERE id=@id";
 
 
@@ -121,6 +132,8 @@ namespace KYC_Portal_Admin.Controllers
                         command.Parameters.AddWithValue("@userpwd", DocInfo.userpwd);
                         command.Parameters.AddWithValue("@username", DocInfo.username);
                         command.Parameters.AddWithValue("@address", DocInfo.address);
+                        command.Parameters.AddWithValue("@companyID", DocInfo.companyid);
+                        command.Parameters.AddWithValue("@qualid", DocInfo.qualid);
                         command.Parameters.AddWithValue("@id", DocInfo.id);
 
 
@@ -141,6 +154,85 @@ namespace KYC_Portal_Admin.Controllers
             }
 
             Response.Redirect("/Users/Index");
+
+        }
+        public void SetCompanyList()
+        {
+            try
+            {
+                String connectionString = Constants.CONNECTION_STRING;
+
+                using (SqlConnection connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+                    String sql = " SELECT * FROM company";
+                    using (SqlCommand command = new SqlCommand(sql, connection))
+
+                    {
+                        using (SqlDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                CompanyInfo CompanyInfo = new CompanyInfo();
+                                CompanyInfo.id = reader.GetInt32(0);
+                                CompanyInfo.companyname = reader.GetString(1);
+                                CompanyInfo.compaddress = reader.GetString(2);
+                                CompanyInfo.logofile = reader.GetString(3);
+                                CompanyInfo.signaturefile = reader.GetString(4);
+                                try
+                                {
+                                    CompanyInfo.isactive = reader.GetString(5);
+                                }
+                                catch (Exception ex)
+                                { }
+
+                                try
+                                {
+                                    CompanyInfo.createdat = reader.GetString(6);
+                                }
+                                catch (Exception ex)
+                                { }
+
+                                try
+                                {
+                                    CompanyInfo.updatedby = reader.GetInt32(9);
+                                }
+                                catch (Exception ex)
+                                { }
+                                try
+                                {
+                                    CompanyInfo.createdby = reader.GetInt32(7);
+                                }
+                                catch (Exception ex)
+                                { }
+
+                                try
+                                {
+                                    CompanyInfo.updatedat = reader.GetString(8);
+                                }
+                                catch (Exception ex)
+                                { }
+
+
+
+
+
+                                userInfoVM.Companies.Add(CompanyInfo);
+                            }
+
+                        }
+
+
+
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Exception: " + ex.ToString());
+
+            }
 
         }
 
@@ -170,6 +262,8 @@ namespace KYC_Portal_Admin.Controllers
                                 editUserInfo.lastname = reader.GetString(5);
                                 editUserInfo.contactno = reader.GetString(6);
                                 editUserInfo.address = reader.GetString(7);
+                                editUserInfo.qualid = reader.GetInt32(15);
+                                editUserInfo.companyid = reader.GetInt32(16);
                             }
                         }
 
@@ -198,10 +292,14 @@ namespace KYC_Portal_Admin.Controllers
             docInfo.address = Request.Form["address"];
             docInfo.userpwd = Request.Form["userpwd"];
             docInfo.username = Request.Form["firstname"];
+            int.TryParse(Request.Form["companyid"], out int companyID);
+            docInfo.companyid = companyID;
+            int.TryParse(Request.Form["qualid"], out int qualid);
+            docInfo.qualid = qualid;
 
 
             if (docInfo.firstname.Length == 0 || docInfo.emailid.Length == 0 ||
-                docInfo.contactno.Length == 0)
+                docInfo.contactno.Length == 0|| docInfo.companyid==0)
             {
                 errorMessage = "All the fields are required";
                 return;
@@ -239,7 +337,6 @@ namespace KYC_Portal_Admin.Controllers
                         command.Parameters.AddWithValue("@userrole", docInfo.userrole);
                         command.Parameters.AddWithValue("@isactive", docInfo.isactive);
                         command.Parameters.AddWithValue("@qualid", docInfo.qualid);
-
                         command.Parameters.AddWithValue("@regdate", docInfo.regdate);
                         command.Parameters.AddWithValue("@companyid", docInfo.companyid);
                         command.Parameters.AddWithValue("@firstlogin", docInfo.firstlogin);

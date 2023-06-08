@@ -38,7 +38,27 @@
             <input type="text" class="form-control" id="phoneNumberInput" name="phone" minLength="4" maxLength="10" value="@Model.docInfo.contactno" required />
         </div>
     </div>
+    <div class="row mb-3">
+        <label class="col-sm-3 col-form-label">Company</label>
+        <div class="col-sm-6">
+            <select class="form-control" name="companyid" required>
+                <option selected disabled></option>
+                @foreach (var company in Model.Companies)
+                {
+                    if (company.id == Model.docInfo.companyid)
+                    {
+                        <option selected value="@company.id">@company.companyname</option>
+                    }
+                    else
+                    {
+                        <option value="@company.id">@company.companyname</option>
 
+                    }
+                }
+            </select>
+        </div>
+    </div>
+    
 
     <div class="row mb-3">
         <label class="col-sm-3 col-form-label">Address</label>

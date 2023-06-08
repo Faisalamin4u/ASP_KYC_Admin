@@ -9,6 +9,7 @@ namespace KYC_Portal_Admin.ViewModels
     public class UserInfoVM
     {
         public UserInfo docInfo = new UserInfo();
+        public List<CompanyInfo> Companies { get; set; }=new List<CompanyInfo>();
         public String errorMessage = "";
         public String successMessage = "";
     }

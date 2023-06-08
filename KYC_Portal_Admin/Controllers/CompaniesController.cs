@@ -37,10 +37,9 @@ namespace KYC_Portal_Admin.Controllers
             return View(companyInfoVM);
         }
         public CompanyInfo editCompanyInfo = new CompanyInfo();
-        public ActionResult Edit(string id)
+        public ActionResult Edit(int id)
         {
-            editCompanyInfo.id = id;
-            SetCompany();
+            SetCompany(id);
             companyInfoVM.companyInfo = editCompanyInfo;
             return View(companyInfoVM);
         }
@@ -54,15 +53,14 @@ namespace KYC_Portal_Admin.Controllers
             companyInfoVM.errorMessage = errorMessage;
             return View(companyInfoVM);
         }
-        public ActionResult Delete(string id)
+        public ActionResult Delete(int id)
         {
-            editCompanyInfo.id = id;
-            DeleteCompany();
+            DeleteCompany(id);
             return RedirectToAction(nameof(Index));
         }
-        public void DeleteCompany()
+        public void DeleteCompany(int id)
         {
-            String id = editCompanyInfo.id;
+            
 
             try
             {
@@ -82,7 +80,8 @@ namespace KYC_Portal_Admin.Controllers
             }
         public void EditCompany(CompanyInfo companyInfo)
         {
-            companyInfo.id = Request.Form["id"];
+            int.TryParse(Request.Form["id"], out int id);
+            companyInfo.id = id;
             companyInfo.companyname = Request.Form["companyname"];
             companyInfo.compaddress = Request.Form["compaddress"];
             companyInfo.logofile = Request.Form["logofile"];
@@ -94,7 +93,7 @@ namespace KYC_Portal_Admin.Controllers
             companyInfo.updatedby = 1; // Convert.ToInt32(Request.Form["updatedby"]);
 
 
-            if (companyInfo.id.Length == 0 || companyInfo.companyname.Length == 0 ||
+            if (companyInfo.id == 0 || companyInfo.companyname.Length == 0 ||
                companyInfo.compaddress.Length == 0 || companyInfo.logofile.Length == 0)
 
             //companyInfo.signature_file.Length ==0 || companyInfo.signature_file ==0 || companyInfo.is_active ==0
@@ -145,10 +144,8 @@ namespace KYC_Portal_Admin.Controllers
 
         }
 
-        public void SetCompany()
+        public void SetCompany(int id)
         {
-            String id = editCompanyInfo.id;
-
             try
             {
                 String connectionString = Constants.CONNECTION_STRING;
@@ -164,7 +161,7 @@ namespace KYC_Portal_Admin.Controllers
                         {
                             if (reader.Read())
                             {
-                                //companyInfo.id = "" + reader.GetInt32(0);
+                                editCompanyInfo.id =  reader.GetInt32(0);
                                 editCompanyInfo.companyname = reader.GetString(1);
                                 editCompanyInfo.compaddress = reader.GetString(2);
                                 editCompanyInfo.logofile = reader.GetString(3); // corrected syntax
@@ -233,8 +230,8 @@ namespace KYC_Portal_Admin.Controllers
 
         public void CompanyCreate(CompanyInfo companyInfo)
         {
-
-            companyInfo.id = Request.Form["id"];
+            int.TryParse(Request.Form["id"], out int id);
+            companyInfo.id = id;
             companyInfo.companyname = Request.Form["companyname"];
             companyInfo.compaddress = Request.Form["compaddress"];
             companyInfo.logofile = Request.Form["logofile"];
@@ -319,7 +316,7 @@ namespace KYC_Portal_Admin.Controllers
                             while (reader.Read())
                             {
                                 CompanyInfo CompanyInfo = new CompanyInfo();
-                                CompanyInfo.id = "" + reader.GetInt32(0);
+                                CompanyInfo.id =  reader.GetInt32(0);
                                 CompanyInfo.companyname = reader.GetString(1);
                                 CompanyInfo.compaddress = reader.GetString(2);
                                 CompanyInfo.logofile = reader.GetString(3);

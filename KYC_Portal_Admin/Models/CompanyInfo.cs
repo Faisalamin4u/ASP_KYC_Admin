@@ -7,13 +7,13 @@ namespace KYC_Portal_Admin.Models
 {
     public class CompanyInfo
     {
-        public string id;
-        public string companyname;
-        public string compaddress;
-        public string logofile;
-        public string signaturefile;
-        public string isactive="1";
-        public string regdate;
+        public int id{get;set;}
+        public string companyname{get;set;}
+        public string compaddress{get;set;}
+        public string logofile{get;set;}
+        public string signaturefile{get;set;}
+        public string isactive { get; set; } = "1";
+        public string regdate{get;set;}
         public string createdat { get; set; }
 
         public int createdby { get; set; }

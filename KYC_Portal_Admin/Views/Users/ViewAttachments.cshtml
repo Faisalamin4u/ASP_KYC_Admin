@@ -18,7 +18,7 @@
                     if (panFilePath.Value.Split('|').Count() > 1)
                     {
                         <li>
-                            <a href="/Users/ViewFile?id=@panFilePath.Key" target="_blank">@panFilePath.Value.Split('|')[1]</a>
+                            <a href="/Users/ReadPanFile?id=@panFilePath.Key" target="_blank">@panFilePath.Value.Split('|')[1]</a>
                         </li>
                     }
                 }
@@ -38,7 +38,7 @@
                     if (bankFilePath.Value.Split('|').Count() > 1)
                     {
                         <li>
-                            <a href="/Users/ViewFile?id=@bankFilePath.Key" target="_blank">@bankFilePath.Value.Split('|')[1]</a>
+                            <a href="/Users/ReadBankFile?id=@bankFilePath.Key" target="_blank">@bankFilePath.Value.Split('|')[1]</a>
                         </li>
                     }
                 }

@@ -88,6 +88,57 @@ namespace KYC_Portal_Admin.Controllers
             var file = FileName.Split('|');
             return openFile(file[0], file[1]);
         }
+        public ActionResult ReadPanFile(int id)
+        {
+            var FileName = GETPANInfo(id);
+            string[] file = new string[2];
+            foreach (var item in FileName)
+            {
+                file = item.Key.Split('|');
+
+            }
+            return openFile(file[0], file[1]);
+        }
+        public ActionResult ReadBankFile(int id)
+        {
+            var FileName = GETPANInfo(id);
+            string[] file = new string[2];
+            foreach (var item in FileName)
+            {
+                file = item.Value.Split('|');
+
+            }
+            return openFile(file[0], file[1]);
+        }
+        public Dictionary<string, string> GETPANInfo(int id)
+        {
+            Dictionary<string, string> files = new Dictionary<string, string>();
+            String connectionString = Constants.CONNECTION_STRING;
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                String sql = "select top 1 [pan_file],[bank_file] from pan_detail where id=@ID;";
+
+                using (SqlCommand command = new SqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@ID", id);
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            if (!reader.IsDBNull(0) && !reader.IsDBNull(1))
+                                files.Add(reader.GetString(0), reader.GetString(1));
+                            else if (!reader.IsDBNull(0))
+                                files.Add(reader.GetString(0), string.Empty);
+                            else
+                                files.Add(string.Empty, reader.GetString(1));
+
+                        }
+                    }
+                }
+            }
+            return files;
+        }
         public string Read(int id)
         {
             string fileName = string.Empty;
@@ -177,7 +228,7 @@ namespace KYC_Portal_Admin.Controllers
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
-                String sql = "select id, filename from reimbursement where user_id=@userID;";
+                String sql = "select id, filename,for_month_text,for_year_num from reimbursement where user_id=@userID;";
 
                 using (SqlCommand command = new SqlCommand(sql, connection))
                 {
@@ -189,7 +240,7 @@ namespace KYC_Portal_Admin.Controllers
                             try
                             {
                                 if (!reader.IsDBNull(1))
-                                    attachFilesVm.ReimbursementFilesPath.Add(reader.GetInt32(0), reader.GetString(1));
+                                    attachFilesVm.ReimbursementFilesPath.Add(reader.GetInt32(0), reader.GetString(1) + " (" + reader.GetString(2) + "-" + reader.GetInt32(3) + " )");
                             }
                             catch (Exception) { }
                         }
@@ -488,7 +539,6 @@ namespace KYC_Portal_Admin.Controllers
             docInfo.qualid = 0;
             docInfo.isactive = 1;
             docInfo.userrole = 1;
-            docInfo.companyid = 1;
             docInfo.firstlogin = 0;
             docInfo.regdate = DateTime.Now.ToString();
             docInfo.createdat = DateTime.Now.ToString();
@@ -500,8 +550,8 @@ namespace KYC_Portal_Admin.Controllers
                 {
                     connection.Open();
                     String sql = "Insert into Users" +
-                          "(username, emailid, userpwd, firstname, lastname, contactno, address, userrole, regdate, firstlogin, isactive, qualid, companyid ) values " +
-                          "(@username,@emailid,@userpwd, @firstname, @lastname, @contactno, @address, @userrole,@createdat=createdat,   @regdate,@firstlogin, @isactive, @qualid,@companyid);";
+                          "(username, emailid, userpwd, firstname, lastname, contactno, address, userrole,createdat, regdate, firstlogin, isactive, qualid, companyid ) values " +
+                          "(@username,@emailid,@userpwd, @firstname, @lastname, @contactno, @address, @userrole,@createdat,   @regdate,@firstlogin, @isactive, @qualid,@companyid);";
 
                     using (SqlCommand command = new SqlCommand(sql, connection))
                     {
@@ -549,7 +599,7 @@ namespace KYC_Portal_Admin.Controllers
                 using (SqlConnection connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
-                    String sql = " SELECT * FROM Users";
+                    String sql = " SELECT id,firstname,lastname,emailid,contactno,address,CONVERT(nvarchar(50),CONVERT(date, regdate)) as regdat FROM Users";
                     using (SqlCommand command = new SqlCommand(sql, connection))
 
                     {
@@ -559,15 +609,16 @@ namespace KYC_Portal_Admin.Controllers
                             {
                                 UserInfo docInfo = new UserInfo();
                                 docInfo.id = Convert.ToInt32(reader.GetInt32(0));
-                                docInfo.firstname = reader.GetString(4);
-                                docInfo.lastname = reader.GetString(5);
-                                docInfo.emailid = reader.GetString(2);
-                                docInfo.contactno = reader.GetString(6);
-                                docInfo.address = reader.GetString(7);
+                                docInfo.firstname = reader.GetString(1);
+                                docInfo.lastname = reader.GetString(2);
+                                docInfo.emailid = reader.GetString(3);
+                                docInfo.contactno = reader.GetString(4);
+                                docInfo.address = reader.GetString(5);
 
                                 try
                                 {
-                                    docInfo.createdat = reader.GetDateTime(12).ToString();
+
+                                    docInfo.createdat = reader.GetString(6);
                                 }
                                 catch (Exception ex)
                                 { }
@@ -593,7 +644,7 @@ namespace KYC_Portal_Admin.Controllers
         }
         public DataTable GetUserDataTable()
         {
-            DataTable userTable=new DataTable();
+            DataTable userTable = new DataTable();
             try
             {
                 String connectionString = Constants.CONNECTION_STRING;

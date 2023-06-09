@@ -1,0 +1,66 @@
+﻿@model KYC_Portal_Admin.ViewModels.AttachFilesVm
+@{
+    ViewBag.Title = "ViewAttachments";
+}
+
+
+<div class="card-body">
+
+    <div class="form-floating mb-3">
+        <h4 class="display-6">PAN Details</h4>
+    </div>
+    <div>
+        @if (Model.PANFilePath.Any())
+        {
+            <ol>
+                @foreach (var panFilePath in Model.PANFilePath)
+                {
+                    if (panFilePath.Value.Split('|').Count() > 1)
+                    {
+                        <li>
+                            <a href="/Users/ViewFile?id=@panFilePath.Key" target="_blank">@panFilePath.Value.Split('|')[1]</a>
+                        </li>
+                    }
+                }
+            </ol>
+        }
+    </div>
+
+    <div class="form-floating mb-3">
+        <h4 class="display-6">Bank Details</h4>
+    </div>
+    <div>
+        @if (Model.BankFilePath.Any())
+        {
+            <ol>
+                @foreach (var bankFilePath in Model.BankFilePath)
+                {
+                    if (bankFilePath.Value.Split('|').Count() > 1)
+                    {
+                        <li>
+                            <a href="/Users/ViewFile?id=@bankFilePath.Key" target="_blank">@bankFilePath.Value.Split('|')[1]</a>
+                        </li>
+                    }
+                }
+            </ol>
+        }
+    </div>
+
+    <div class="form-floating mb-3">
+        <h4 class="display-6">Reimbursement Bill Details</h4>
+    </div>
+    <div>
+        <ol>
+            @foreach (var ReimbursementFilePath in Model.ReimbursementFilesPath)
+            {
+                if (ReimbursementFilePath.Value.Split('|').Count() > 1)
+                {
+                    <li>
+                        <a href="/Users/ViewFile?id=@ReimbursementFilePath.Key" target="_blank">@ReimbursementFilePath.Value.Split('|')[1]</a>
+                    </li>
+                }
+            }
+        </ol>
+    </div>
+
+</div>

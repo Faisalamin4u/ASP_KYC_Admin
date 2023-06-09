@@ -1,9 +1,12 @@
 ﻿using KYC_Portal_Admin.Models;
 using KYC_Portal_Admin.Utilities;
 using KYC_Portal_Admin.ViewModels;
+using OfficeOpenXml;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.SqlClient;
+using System.IO;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
@@ -19,6 +22,180 @@ namespace KYC_Portal_Admin.Controllers
         {
             SetUserList();
             return View(listUsers);
+        }
+        public ActionResult ExportToExcel()
+        {
+            var userTable = GetUserDataTable();
+            // Get your table data here
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial; // or LicenseContext.Commercial
+
+            using (ExcelPackage package = new ExcelPackage())
+            {
+                ExcelWorksheet worksheet = package.Workbook.Worksheets.Add("Users");
+
+                // Load the table data into the worksheet
+                worksheet.Cells["A1"].LoadFromDataTable(userTable, true);
+
+                // Auto-fit columns for better visibility
+                worksheet.Cells.AutoFitColumns();
+
+                // Set some additional formatting if needed
+                worksheet.Cells.Style.Font.Size = 12;
+                worksheet.Cells.Style.Font.Name = "Arial";
+
+                // Set response headers for Excel file download
+                string fileName = "Users.xlsx";
+                string contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                byte[] excelBytes = package.GetAsByteArray();
+
+                return File(excelBytes, contentType, fileName);
+            }
+        }
+        public DataTable ConvertReaderToDataTable(SqlDataReader reader)
+        {
+            DataTable dataTable = new DataTable();
+
+            // Create columns in DataTable based on the reader schema
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                dataTable.Columns.Add(reader.GetName(i), reader.GetFieldType(i));
+            }
+
+            // Populate DataTable with data from the reader
+            while (reader.Read())
+            {
+                DataRow row = dataTable.NewRow();
+
+                for (int i = 0; i < reader.FieldCount; i++)
+                {
+                    row[i] = reader[i];
+                }
+
+                dataTable.Rows.Add(row);
+            }
+
+            return dataTable;
+        }
+        AttachFilesVm attachFilesVm = new AttachFilesVm();
+        public ActionResult ViewAttachments(int id)
+        {
+            SetPANInfo(id);
+            return View(attachFilesVm);
+        }
+        public ActionResult ViewFile(int id)
+        {
+            var FileName = Read(id);
+            var file = FileName.Split('|');
+            return openFile(file[0], file[1]);
+        }
+        public string Read(int id)
+        {
+            string fileName = string.Empty;
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(Constants.CONNECTION_STRING))
+                {
+                    connection.Open();
+                    String sql = " SELECT filename FROM reimbursement where id=@id";
+                    using (SqlCommand command = new SqlCommand(sql, connection))
+
+                    {
+                        command.Parameters.AddWithValue("@id", id);
+                        using (SqlDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                                fileName = reader.GetString(0);
+
+                        }
+
+
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Exception: " + ex.ToString());
+
+            }
+            return fileName;
+
+        }
+
+        public ActionResult openFile(string base64String, string fileName)
+        {
+            byte[] fileBytes = Convert.FromBase64String(base64String);
+
+            string uploadsPath = Server.MapPath("~/Uploads");
+            string filePath = Path.Combine(uploadsPath, fileName);
+
+            if (!Directory.Exists(uploadsPath))
+            {
+                Directory.CreateDirectory(uploadsPath);
+            }
+
+            System.IO.File.WriteAllBytes(filePath, fileBytes);
+
+
+            if (!System.IO.File.Exists(filePath))
+            {
+                return HttpNotFound();
+            }
+
+            string contentType = MimeMapping.GetMimeMapping(fileName);
+            if (string.IsNullOrEmpty(contentType))
+            {
+                contentType = "application/octet-stream";
+            }
+            return new FileContentResult(fileBytes, contentType);
+        }
+
+        public void SetPANInfo(int id)
+        {
+            String connectionString = Constants.CONNECTION_STRING;
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                String sql = "select pan_file,bank_file,id from pan_detail where user_id=@userID;";
+                sql += "select filename from reimbursement where user_id=@userID;";
+
+                using (SqlCommand command = new SqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@userID", id);
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            if (!reader.IsDBNull(0))
+                                attachFilesVm.PANFilePath.Add(reader.GetInt32(2), reader.GetString(0));
+                            if (!reader.IsDBNull(1))
+                                attachFilesVm.BankFilePath.Add(reader.GetInt32(2), reader.GetString(1));
+                        }
+                    }
+                }
+            }
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                String sql = "select id, filename from reimbursement where user_id=@userID;";
+
+                using (SqlCommand command = new SqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@userID", id);
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            try
+                            {
+                                if (!reader.IsDBNull(1))
+                                    attachFilesVm.ReimbursementFilesPath.Add(reader.GetInt32(0), reader.GetString(1));
+                            }
+                            catch (Exception) { }
+                        }
+                    }
+                }
+            }
         }
         public String errorMessage = "";
         public String successMessage = "";
@@ -119,7 +296,7 @@ namespace KYC_Portal_Admin.Controllers
                 {
                     connection.Open();
                     String sql = "UPDATE users " +
-                      "SET firstname=@firstname, lastname=@lastname, emailid=@emailid, contactno=@contactno, username=@username,companyid=@companyID, qualid=@qualid,userpwd=@userpwd, address=@address" +
+                      "SET firstname=@firstname, lastname=@lastname, emailid=@emailid, contactno=@contactno, username=@username,companyid=@companyID, qualid=@qualid,userpwd=@userpwd, address=@address,updatedat=@updatedat" +
                     " WHERE id=@id";
 
 
@@ -134,6 +311,7 @@ namespace KYC_Portal_Admin.Controllers
                         command.Parameters.AddWithValue("@address", DocInfo.address);
                         command.Parameters.AddWithValue("@companyID", DocInfo.companyid);
                         command.Parameters.AddWithValue("@qualid", DocInfo.qualid);
+                        command.Parameters.AddWithValue("@updatedat", DateTime.Now.ToString());
                         command.Parameters.AddWithValue("@id", DocInfo.id);
 
 
@@ -299,7 +477,7 @@ namespace KYC_Portal_Admin.Controllers
 
 
             if (docInfo.firstname.Length == 0 || docInfo.emailid.Length == 0 ||
-                docInfo.contactno.Length == 0|| docInfo.companyid==0)
+                docInfo.contactno.Length == 0 || docInfo.companyid == 0)
             {
                 errorMessage = "All the fields are required";
                 return;
@@ -323,7 +501,7 @@ namespace KYC_Portal_Admin.Controllers
                     connection.Open();
                     String sql = "Insert into Users" +
                           "(username, emailid, userpwd, firstname, lastname, contactno, address, userrole, regdate, firstlogin, isactive, qualid, companyid ) values " +
-                          "(@username,@emailid,@userpwd, @firstname, @lastname, @contactno, @address, @userrole,   @regdate,@firstlogin, @isactive, @qualid,@companyid);";
+                          "(@username,@emailid,@userpwd, @firstname, @lastname, @contactno, @address, @userrole,@createdat=createdat,   @regdate,@firstlogin, @isactive, @qualid,@companyid);";
 
                     using (SqlCommand command = new SqlCommand(sql, connection))
                     {
@@ -338,6 +516,7 @@ namespace KYC_Portal_Admin.Controllers
                         command.Parameters.AddWithValue("@isactive", docInfo.isactive);
                         command.Parameters.AddWithValue("@qualid", docInfo.qualid);
                         command.Parameters.AddWithValue("@regdate", docInfo.regdate);
+                        command.Parameters.AddWithValue("@createdat", docInfo.createdat);
                         command.Parameters.AddWithValue("@companyid", docInfo.companyid);
                         command.Parameters.AddWithValue("@firstlogin", docInfo.firstlogin);
 
@@ -410,6 +589,35 @@ namespace KYC_Portal_Admin.Controllers
 
             }
 
+
+        }
+        public DataTable GetUserDataTable()
+        {
+            DataTable userTable=new DataTable();
+            try
+            {
+                String connectionString = Constants.CONNECTION_STRING;
+
+                using (SqlConnection connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+                    String sql = "SELECT TOP (1000) ROW_NUMBER() OVER (ORDER BY u.id) AS 'Sr. #'\r\n      ,[username] as 'User Name'\r\n      ,[emailid] as Email\r\n      ,[firstname] as 'First Name'\r\n      ,[lastname] as 'Last Name'\r\n      ,[contactno] as 'Contact Number'\r\n      ,[address] as 'Address'\r\n      ,CASE \r\n        WHEN ur.[roletitle] < 1 THEN ''\r\n        ELSE ur.[roletitle]\r\n    END  as 'Role'\r\n      ,CONVERT(nvarchar(50),CONVERT(date, u.regdate)) AS 'Registerd Date'\r\n      ,CASE \r\n        WHEN u.isactive = 1 THEN 'Active'\r\n        ELSE 'De-Active'\r\n    END AS [Status]\r\n      ,cc.country_name as 'Country'\r\n\t  ,ci.cityname as 'City'\r\n      ,q.title as 'Qualification'\r\n      ,c.companyname as Company\r\n  FROM [KYCportal].[dbo].[users] u\r\n  left join company c on c.id=u.companyid\r\n  left join qualification q on q.id=u.qualid\r\n  left join userrole ur on ur.id=u.userrole\r\n  left join country cc on cc.id=u.userrole\r\n  left join city ci on ci.id=u.userrole";
+                    using (SqlCommand command = new SqlCommand(sql, connection))
+                    {
+                        using (SqlDataReader reader = command.ExecuteReader())
+                        {
+                            userTable = ConvertReaderToDataTable(reader);//for export excel                           
+                        }
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Exception: " + ex.ToString());
+
+            }
+            return userTable;
 
         }
 

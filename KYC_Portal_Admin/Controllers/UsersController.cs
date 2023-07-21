@@ -21,6 +21,7 @@ namespace KYC_Portal_Admin.Controllers
         public ActionResult Index()
         {
             SetUserList();
+            ViewBag.SuccessMessage=TempData["successMessage"];
             return View(listUsers);
         }
         public ActionResult ExportToExcel()
@@ -268,6 +269,68 @@ namespace KYC_Portal_Admin.Controllers
             userInfoVM.errorMessage = errorMessage;
             return View(userInfoVM);
         }
+        [HttpPost]
+        public ActionResult UploadExcelFile(FormCollection formCollection)
+        {
+            SetCompanyList();
+            // Get the uploaded file
+            var file = Request.Files["excelFile"];
+
+            if (file != null && file.ContentLength > 0)
+            {
+                try
+                {
+                    using (var package = new ExcelPackage(file.InputStream))
+                    {
+                        ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
+
+                        // Assuming the data starts from the 2nd row (skip the header row)
+                        int startRow = 2;
+                        int rowCount = worksheet.Dimension.Rows;
+
+                        for (int row = startRow; row <= rowCount; row++)
+                        {
+                            // Assuming the columns are in order (FirstName, LastName, Phone, Company, Address, Email, Password)
+                            string firstName = worksheet.Cells[row, 1].Value?.ToString();
+                            string lastName = worksheet.Cells[row, 2].Value?.ToString();
+                            string phone = worksheet.Cells[row, 3].Value?.ToString();
+                            var companyName= worksheet.Cells[row, 4].Value?.ToString();
+                            int companyId = userInfoVM
+                                            .Companies
+                                            .FirstOrDefault(x=>x.companyname.Equals(companyName,StringComparison.OrdinalIgnoreCase))?
+                                            .id??0;
+                            //int companyId = Convert.ToInt32(worksheet.Cells[row, 4].Value);
+                            string address = worksheet.Cells[row, 5].Value?.ToString();
+                            string email = worksheet.Cells[row, 6].Value?.ToString();
+                            string password = worksheet.Cells[row, 7].Value?.ToString();
+
+                            SaveUser(new UserInfo
+                            {
+                                firstname = firstName,
+                                lastname = lastName,
+                                contactno = phone,
+                                companyid = companyId,
+                                address = address,
+                                emailid = email,
+                                userpwd = password
+                            });
+
+                            TempData["successMessage"] = "Users Imported Successfully!";
+
+                        }
+
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Handle exceptions
+                    ViewBag.ErrorMessage = "Error occurred while processing the file: " + ex.Message;
+                }
+            }
+
+            // Redirect back to the view (you may also use TempData to preserve the message across redirects)
+            return RedirectToAction("Index", "Users");
+        }
         public UserInfo editUserInfo = new UserInfo();
         public ActionResult Edit(int id)
         {
@@ -511,38 +574,46 @@ namespace KYC_Portal_Admin.Controllers
             }
         }
 
-        public void UserCreate(UserInfo docInfo)
+        public void UserCreate(UserInfo userinfo)
         {
 
-            docInfo.firstname = Request.Form["firstname"];
-            docInfo.lastname = Request.Form["lastname"];
-            docInfo.emailid = Request.Form["email"];
-            docInfo.contactno = Request.Form["phone"];
-            docInfo.address = Request.Form["address"];
-            docInfo.userpwd = Request.Form["userpwd"];
-            docInfo.username = Request.Form["firstname"];
+            userinfo.firstname = Request.Form["firstname"];
+            userinfo.lastname = Request.Form["lastname"];
+            userinfo.emailid = Request.Form["email"];
+            userinfo.contactno = Request.Form["phone"];
+            userinfo.address = Request.Form["address"];
+            userinfo.userpwd = Request.Form["userpwd"];
+            userinfo.username = Request.Form["firstname"];
             int.TryParse(Request.Form["companyid"], out int companyID);
-            docInfo.companyid = companyID;
+            userinfo.companyid = companyID;
             int.TryParse(Request.Form["qualid"], out int qualid);
-            docInfo.qualid = qualid;
+            userinfo.qualid = qualid;
 
 
-            if (docInfo.firstname.Length == 0 || docInfo.emailid.Length == 0 ||
-                docInfo.contactno.Length == 0 || docInfo.companyid == 0)
+            if (userinfo.firstname.Length == 0 || userinfo.emailid.Length == 0 ||
+                userinfo.contactno.Length == 0 || userinfo.companyid == 0)
             {
                 errorMessage = "All the fields are required";
                 return;
             }
 
+            SaveUser(userinfo);
+                
+            userinfo.firstname = ""; userinfo.emailid = ""; userinfo.contactno = ""; userinfo.address = "";
+            successMessage = "New User Added Correctly";
+
+            Response.Redirect("/Users/Index");
+        }
+        private void SaveUser(UserInfo userInfo)
+        {
             //save the new user into the database
 
-            docInfo.qualid = 0;
-            docInfo.isactive = 1;
-            docInfo.userrole = 1;
-            docInfo.firstlogin = 0;
-            docInfo.regdate = DateTime.Now.ToString();
-            docInfo.createdat = DateTime.Now.ToString();
-
+            userInfo.qualid = 0;
+            userInfo.isactive = 1;
+            userInfo.userrole = 1;
+            userInfo.firstlogin = 0;
+            userInfo.regdate = DateTime.Now.ToString();
+            userInfo.createdat = DateTime.Now.ToString();
             try
             {
                 String connectionString = Constants.CONNECTION_STRING;
@@ -555,20 +626,20 @@ namespace KYC_Portal_Admin.Controllers
 
                     using (SqlCommand command = new SqlCommand(sql, connection))
                     {
-                        command.Parameters.AddWithValue("@username", docInfo.firstname);
-                        command.Parameters.AddWithValue("@emailid", docInfo.emailid);
-                        command.Parameters.AddWithValue("@userpwd", docInfo.userpwd);
-                        command.Parameters.AddWithValue("@firstname", docInfo.firstname);
-                        command.Parameters.AddWithValue("@lastname", docInfo.lastname);
-                        command.Parameters.AddWithValue("@contactno", docInfo.contactno);
-                        command.Parameters.AddWithValue("@address", docInfo.address);
-                        command.Parameters.AddWithValue("@userrole", docInfo.userrole);
-                        command.Parameters.AddWithValue("@isactive", docInfo.isactive);
-                        command.Parameters.AddWithValue("@qualid", docInfo.qualid);
-                        command.Parameters.AddWithValue("@regdate", docInfo.regdate);
-                        command.Parameters.AddWithValue("@createdat", docInfo.createdat);
-                        command.Parameters.AddWithValue("@companyid", docInfo.companyid);
-                        command.Parameters.AddWithValue("@firstlogin", docInfo.firstlogin);
+                        command.Parameters.AddWithValue("@username", userInfo.firstname);
+                        command.Parameters.AddWithValue("@emailid", userInfo.emailid);
+                        command.Parameters.AddWithValue("@userpwd", userInfo.userpwd);
+                        command.Parameters.AddWithValue("@firstname", userInfo.firstname);
+                        command.Parameters.AddWithValue("@lastname", userInfo.lastname);
+                        command.Parameters.AddWithValue("@contactno", userInfo.contactno);
+                        command.Parameters.AddWithValue("@address", userInfo.address);
+                        command.Parameters.AddWithValue("@userrole", userInfo.userrole);
+                        command.Parameters.AddWithValue("@isactive", userInfo.isactive);
+                        command.Parameters.AddWithValue("@qualid", userInfo.qualid);
+                        command.Parameters.AddWithValue("@regdate", userInfo.regdate);
+                        command.Parameters.AddWithValue("@createdat", userInfo.createdat);
+                        command.Parameters.AddWithValue("@companyid", userInfo.companyid);
+                        command.Parameters.AddWithValue("@firstlogin", userInfo.firstlogin);
 
                         command.ExecuteNonQuery();
 
@@ -584,11 +655,6 @@ namespace KYC_Portal_Admin.Controllers
                 errorMessage = ex.Message;
                 return;
             }
-
-            docInfo.firstname = ""; docInfo.emailid = ""; docInfo.contactno = ""; docInfo.address = "";
-            successMessage = "New User Added Correctly";
-
-            Response.Redirect("/Users/Index");
         }
         public void SetUserList()
         {

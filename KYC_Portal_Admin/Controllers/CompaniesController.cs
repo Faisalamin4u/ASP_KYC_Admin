@@ -18,6 +18,16 @@ namespace KYC_Portal_Admin.Controllers
         public ActionResult Index()
         {
             SetCompanyList();
+            foreach (var company in listCompany)
+            {
+                var fileName = company.logofile.Split('|');
+                if (fileName != null && fileName.Count() > 1)
+                    company.logofile = fileName[0];
+
+                var fileName1 = company.signaturefile.Split('|');
+                if (fileName1 != null && fileName1.Count() > 1)
+                    company.signaturefile = fileName1[0];
+            }
             return View(listCompany);
         }
         public String errorMessage = "";
@@ -60,7 +70,7 @@ namespace KYC_Portal_Admin.Controllers
         }
         public void DeleteCompany(int id)
         {
-            
+
 
             try
             {
@@ -77,15 +87,22 @@ namespace KYC_Portal_Admin.Controllers
                 }
             }
             catch { }
-            }
+        }
         public void EditCompany(CompanyInfo companyInfo)
         {
+            var files = Request.Files;
+            if (files == null || (files != null && files.Count < 2))
+            {
+                errorMessage = "Please Select Logo or signature file."; return;
+            }
+            var logoFile = files[0];
+            var stampFile = files[1];
             int.TryParse(Request.Form["id"], out int id);
             companyInfo.id = id;
             companyInfo.companyname = Request.Form["companyname"];
             companyInfo.compaddress = Request.Form["compaddress"];
-            companyInfo.logofile = Request.Form["logofile"];
-            companyInfo.signaturefile = Request.Form["signaturefile"];
+            companyInfo.logofile = logoFile.FileName + "|" + FileService.UploadImage_Base64(logoFile);
+            companyInfo.signaturefile = stampFile.FileName + "|" + FileService.UploadImage_Base64(stampFile); // Request.Form["signaturefile"];         
             companyInfo.isactive = Request.Form["isactive"];
             companyInfo.createdat = Request.Form["createdat"];
             companyInfo.createdby = 1; // Convert.ToInt32(Request.Form["createdby"]); // corrected syntax
@@ -161,7 +178,7 @@ namespace KYC_Portal_Admin.Controllers
                         {
                             if (reader.Read())
                             {
-                                editCompanyInfo.id =  reader.GetInt32(0);
+                                editCompanyInfo.id = reader.GetInt32(0);
                                 editCompanyInfo.companyname = reader.GetString(1);
                                 editCompanyInfo.compaddress = reader.GetString(2);
                                 editCompanyInfo.logofile = reader.GetString(3); // corrected syntax
@@ -230,12 +247,19 @@ namespace KYC_Portal_Admin.Controllers
 
         public void CompanyCreate(CompanyInfo companyInfo)
         {
+            var files = Request.Files;
+            if (files == null || (files != null && files.Count < 2))
+            {
+                errorMessage = "Please Select Logo or signature file."; return;
+            }
+            var logoFile = files[0];
+            var stampFile = files[1];
             int.TryParse(Request.Form["id"], out int id);
             companyInfo.id = id;
             companyInfo.companyname = Request.Form["companyname"];
             companyInfo.compaddress = Request.Form["compaddress"];
-            companyInfo.logofile = Request.Form["logofile"];
-            companyInfo.signaturefile = Request.Form["logofile"]; // Request.Form["signaturefile"];
+            companyInfo.logofile = logoFile.FileName + "|" + FileService.UploadImage_Base64(logoFile);
+            companyInfo.signaturefile = stampFile.FileName + "|" + FileService.UploadImage_Base64(stampFile); // Request.Form["signaturefile"];
             companyInfo.isactive = "1"; // Request.Form["is_active"];
             companyInfo.createdat = DateTime.Now.ToString(); // Request.Form["created_at"];
                                                              //companyInfo.created_by = Request.Form["created_by"];
@@ -260,8 +284,8 @@ namespace KYC_Portal_Admin.Controllers
                 {
                     connection.Open();
                     String sql = "Insert into  company" +
-                          "(companyname, compaddress, logofile, signaturefile,isactive,createdat,  createdby,updatedat,updatedby ) values " +
-                          "(@companyname,@compaddress,@logofile,@signaturefile,@isactive,@createdat,@createdby,@updatedat,@updatedby);";
+                          "(companyname, compaddress, logofile, signaturefile,isactive,createdat,  createdby,updatedat,updatedby,regdate ) values " +
+                          "(@companyname,@compaddress,@logofile,@signaturefile,@isactive,@createdat,@createdby,@updatedat,@updatedby,@regdate);";
 
                     using (SqlCommand command = new SqlCommand(sql, connection))
                     {
@@ -269,11 +293,12 @@ namespace KYC_Portal_Admin.Controllers
                         command.Parameters.AddWithValue("@compaddress", companyInfo.compaddress);
                         command.Parameters.AddWithValue("@logofile", companyInfo.logofile);
                         command.Parameters.AddWithValue("@signaturefile", companyInfo.signaturefile);
-                        command.Parameters.AddWithValue("@isactive", companyInfo.isactive);
+                        command.Parameters.AddWithValue("@isactive", 1);
                         command.Parameters.AddWithValue("@createdat", companyInfo.createdat);
                         command.Parameters.AddWithValue("@createdby", companyInfo.createdby);
                         command.Parameters.AddWithValue("@updatedat", companyInfo.updatedat);
                         command.Parameters.AddWithValue("@updatedby", companyInfo.updatedby);
+                        command.Parameters.AddWithValue("@regdate", companyInfo.createdat);
 
 
                         command.ExecuteNonQuery();
@@ -316,7 +341,7 @@ namespace KYC_Portal_Admin.Controllers
                             while (reader.Read())
                             {
                                 CompanyInfo CompanyInfo = new CompanyInfo();
-                                CompanyInfo.id =  reader.GetInt32(0);
+                                CompanyInfo.id = reader.GetInt32(0);
                                 CompanyInfo.companyname = reader.GetString(1);
                                 CompanyInfo.compaddress = reader.GetString(2);
                                 CompanyInfo.logofile = reader.GetString(3);

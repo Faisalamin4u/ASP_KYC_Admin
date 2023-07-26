@@ -15,17 +15,13 @@
 
 }
 
-<form method="post">
+<form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="id" value="@Model.companyInfo.id" />
+
     <div class="row mb-3">
         <label class="col-sm-3 col-form-label">Company_Name</label>
         <div class="col-sm-6">
             <input type="text" class="form-control" name="companyname" value="@Model.companyInfo.companyname" />
-        </div>
-    </div>
-    <div class="row mb-3">
-        <label class="col-sm-3 col-form-label">Address</label>
-        <div class="col-sm-6">
-            <input type="text" class="form-control" name="compaddress" value="@Model.companyInfo.compaddress" />
         </div>
     </div>
 
@@ -42,6 +38,12 @@
         </div>
     </div>
 
+    <div class="row mb-3">
+        <label class="col-sm-3 col-form-label">Address</label>
+        <div class="col-sm-6">
+            <textarea type="text" class="form-control" name="compaddress">@Model.companyInfo.compaddress</textarea>
+        </div>
+    </div>
     @if (Model.successMessage.Length > 0)
     {
         <div class="row mb-3">
